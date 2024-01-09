@@ -1,0 +1,74 @@
+trigger:
+ branches:
+   include:
+     - master
+ paths:
+   include:
+     - src 
+    
+variables:
+  zipArtifactFilePath: $(Build.ArtifactStagingDirectory)/nextjsapp.zip 
+
+pool:
+  vmImage: ubuntu-latest
+
+jobs:
+  - job: build
+    displayName: Build
+    steps:
+      - task: NodeTool@0
+        displayName: Set Node Version
+        inputs:
+          versionSource: "spec"
+          versionSpec: "20.x" 
+      - task: Npm@1
+        displayName: npm package restore 
+        inputs:
+          command: "ci"
+          
+      - task: Npm@1
+        displayName: npm build
+        inputs:
+          command: "custom"
+          customCommand: "run build"
+
+      - task: CopyFiles@2
+        displayName: Copy standalone artifact
+        inputs:
+          SourceFolder: '$(Build.SourcesDirectory)/.next/standalone/'
+          Contents: '**'
+          TargetFolder: '$(Build.ArtifactStagingDirectory)'
+          CleanTargetFolder: true
+
+      - task: CopyFiles@2
+        displayName: Copy public folder to artifact
+        inputs:
+          SourceFolder: '$(Build.SourcesDirectory)/public'
+          Contents: '**'
+          TargetFolder: '$(Build.ArtifactStagingDirectory)/public'
+          CleanTargetFolder: true
+
+      - task: CopyFiles@2
+        displayName: Copy static folder to artifact
+        inputs:
+          SourceFolder: '$(Build.SourcesDirectory)/.next/static/'
+          Contents: '**'
+          TargetFolder: '$(Build.ArtifactStagingDirectory)/.next/static'
+          CleanTargetFolder: true
+
+      - task: ArchiveFiles@2
+        displayName: Archive zip web app
+        inputs:
+          rootFolderOrFile: "$(Build.ArtifactStagingDirectory)"
+          includeRootFolder: false
+          archiveType: "zip"
+          archiveFile: "$(zipArtifactFilePath)"
+          replaceExistingArchive: true 
+          
+      - task: PublishPipelineArtifact@1
+        displayName: Publish web app artifact
+        inputs:
+          targetPath: '$(zipArtifactFilePath)'
+          artifact: 'web-app'
+          publishLocation: 'pipeline'
+ 
