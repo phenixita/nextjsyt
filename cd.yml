@@ -1,0 +1,39 @@
+variables:
+  azureLocation: 'Italy North'
+  azureRgName: 'rg-nextapptutorial'
+  azureSubscriptionId: 'dce4a55c-1d65-46ec-bd2b-831801fc6bab'
+  azureSubscriptionName: 'Azure-NextAppTutorial'
+  azureWebAppName: 'wapp-nextapptutorial-webapp'
+  azureNodeRuntimeStack: 'NODE|20-lts'
+  azureWebAppStartupCommand: 'node server.js'
+  
+pool:
+  vmImage: ubuntu-latest
+
+resources:
+ pipelines:
+   - pipeline: nextjsapp-ci
+     source: nextjsapp
+     trigger:
+       branches:
+         include:
+           - master
+
+jobs:
+    - deployment:
+      displayName: Deploy on Azure
+      environment: mfit
+      strategy:
+       runOnce: 
+           deploy:
+               steps: 
+                - task: AzureRmWebAppDeployment@4
+                  displayName: 'App Service' 
+                  inputs:
+                    ConnectionType: 'AzureRM'
+                    azureSubscription: '$(azureSubscriptionName)'
+                    appType: 'webAppLinux'
+                    WebAppName: '$(azureWebAppName)'
+                    packageForLinux: '$(Pipeline.Workspace)/**/*.zip'
+                    RuntimeStack: '$(azureNodeRuntimeStack)'
+                    StartupCommand: '$(azureWebAppStartupCommand)'
